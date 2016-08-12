@@ -1,0 +1,18 @@
+{
+  "name": "Robotics Arm",
+  "main": "public/index.html",
+  "background": "index.js",
+  "version":"1.0.0",
+  "window": {
+    "icon": "assets/icon.png",
+    "frame": true,
+    "transparent": false,
+    "width": 450,
+    "height": 390,
+    "toolbar":false,
+    "resizable": false
+  },
+  "devDependencies": {
+    "nw-builder": "^2.2.6"
+  }
+}

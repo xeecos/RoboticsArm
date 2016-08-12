@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Robotics ARM</title>
+<script src="js/jquery.js"></script>
+</head>
+<body>
+
+	<div class="tab-pane active" id="gcode-inout">
+		<textarea id="gcode-console" style="resize:none;width:425px;height:140px;" bind-value-to="consoleGCode" spellcheck="false"></textarea>
+		<p id="info" style="font-size:12px;line-height:16px;">X: 0mm  Y:277mm  Z:0mm  Status:idle</p>
+		<p style="position:relative;top:-5px;left:0px;">
+			<button id="connectBt" class="btn btn-success" style="width:100px;" onClick="onConnect();">Connect</button>&nbsp;&nbsp;
+			<select id="serialport" style="width:182px;margin-top:10px;height:30px;"></select>&nbsp;&nbsp;
+			<select id="speed" style="width:70px;margin-top:10px;height:30px;">
+				<option value="50">F50</option>
+				<option value="100">F100</option>
+				<option value="200">F200</option>
+				<option value="400">F400</option>
+				<option value="1500" selected="selected">F1500</option>
+				<option value="2800">F2800</option>
+				<option value="6000">F6000</option>
+				<option value="12000">F12000</option>
+				<option value="20000">F20000</option>
+			</select>&nbsp;&nbsp;
+			<button type="button" class="btn" style="width:40px;" onClick="refreshSerialPort();">
+			<img src="assets/refresh.png" width="15px" height="15px"/>
+			</button>
+		</p>
+		<div style="position:relative;top:-10px;left:0px;">
+			<button type="button" class="btn btn-success"  style="position:absolute;top:75px;left:0px;width:100px;height:65px;" ng-click="printGCode()">
+			GCode
+			</button>
+			<button type="button" class="btn" style="position:absolute;top:0px;left:110px;width:100px;height:65px;" onClick="moveForward()">
+			Y+
+			</button>
+			<button type="button" class="btn" style="position:absolute;top:75px;left:220px;width:100px;height:65px;" onClick="goZero()">
+			<img src="assets/home.png" width="25px" height="25px"/>
+			</button>
+			<button type="button" class="btn" style="position:absolute;top:0px;left:0px;width:100px;height:65px;" onClick="moveLeft()">
+			X-
+			</button>
+
+			<button type="button" class="btn"  style="position:absolute;top:75px;left:110px;width:100px;height:65px;" onClick="moveBackward()">
+			Y-
+			</button>
+			<button type="button" class="btn " style="position:absolute;top:0px;left:220px;width:100px;height:65px;" onClick="moveRight()">
+			X+
+			</button>
+			<button type="button" class="btn " style="position:absolute;top:0px;left:330px;width:100px;height:65px;" onClick="moveUp()">
+			Z+
+			</button>
+			<button type="button" class="btn" style="position:absolute;top:75px;left:330px;width:100px;height:65px;" onClick="moveDown()">
+			Z-
+			</button>
+		</div>
+</div>
+<script>
+	var connectId = -1;
+	var position = {x:0,y:227,z:0};
+	var status = "idle";
+	function convertStringToArrayBuffer(str) {
+		var buf=new ArrayBuffer(str.length);
+		var bufView=new Uint8Array(buf);
+		for (var i=0; i<str.length; i++) {
+			bufView[i]=str.charCodeAt(i);
+		}
+		return buf;
+	}
+	var _gcodes = [];
+	function sendNext(){
+		if(_gcodes.length>0){
+			sendGCode( _gcodes.shift()+"\n");
+		}
+	}
+	function onConnect(){
+		if($("#connectBt").html()=="Disconnect"){
+			setTimeout(function(){
+				chrome.serial.disconnect(connectId,function(result){
+					connectId = -1;
+					$("#connectBt").html("Connect");
+				});
+			},1000);
+			return;
+		}
+		var port = $("#serialport option:selected" ).val();
+		chrome.serial.connect(port, {bitrate: 115200},  function(connectionInfo) {
+			connectId = connectionInfo.connectionId;
+			$("#connectBt").html("Disconnect");
+			setTimeout(function(){
+
+			},1000);
+		});
+	}
+	function refreshSerialPort(){
+		$("#serialport").empty();
+		chrome.serial.getDevices(function(ports){
+			for(var i=0;i<ports.length;i++){
+				if(ports[i].path.indexOf("Bluetooth")==-1){
+					var op = $('<option></option>').attr('value',ports[i].path).text(ports[i].path);
+					$("#serialport").append(op);
+				}
+			}
+		});  
+	}
+	chrome.serial.onReceive.addListener(onReceiveCallback);
+	refreshSerialPort();
+	function onReceiveCallback(res){
+		var str = String.fromCharCode.apply(null, new Uint8Array(res.data));
+		console.log(str);
+		if(str.indexOf("ok")>-1){
+			status = "idle";
+			$("#info").html("X: "+position.x+"mm  Y:"+position.y+"mm  Z:"+position.z+"mm  Status:"+status);
+			self.sendNext();
+		}
+	};
+	function goZero(){
+		if(status=="idle"){
+			sendGCode("G28\n");
+	 		position = {x:0,y:227,z:0};
+		}
+	}
+	function moveUp(){
+		if(status=="idle"){
+			position.z+=5;
+			sendPosition();
+		}
+	}
+	function moveDown(){
+		if(status=="idle"){
+			position.z-=5;
+			sendPosition();
+		}
+	}
+	function moveLeft(){
+		if(status=="idle"){
+			position.x-=5;
+			sendPosition();
+		}
+	}
+	function moveRight(){
+		if(status=="idle"){
+			position.x+=5;
+			sendPosition();
+		}
+	}
+	function moveForward(){
+		if(status=="idle"){
+			position.y+=5;
+			sendPosition();
+		}
+	}
+	function moveBackward(){
+		if(status=="idle"){
+			position.y-=5;
+			sendPosition();
+		}
+	}
+	function sendPosition(){
+		sendGCode("G1 X"+position.x+" Y"+position.y+" Z"+position.z+" F"+$("#speed option:selected" ).val()+"\n");
+		status = "moving";
+		$("#info").html("X: "+position.x+"mm  Y:"+position.y+"mm  Z:"+position.z+"mm  Status:"+status);
+	}
+	var ws = new WebSocket('ws://localhost:6437');
+	var lastTime = 0;
+  	ws.onmessage = function (e) {
+		var data = e.data;
+	  	var frame = JSON.parse(data);
+		if (frame.hands && frame.hands.length == 1) {
+			var x = Math.floor(frame.hands[0].t[0]);
+			var y = Math.floor(frame.hands[0].t[2]);
+			var z = Math.floor(frame.hands[0].t[1]);
+			var w = Math.floor(frame.hands[0].sphereRadius);
+			if(new Date().getTime()-lastTime>100){
+				lastTime = new Date().getTime();
+				//var sendBuf = ("x="+x+"&y="+y+"&z="+z+"&w="+w+"\n");
+				//console.log(sendBuf);
+				var tmp = {x:position.x,y:position.y,z:position.z};
+				if(Math.abs(x)<150){
+					position.x = x;
+				}
+				if(Math.abs(y)<40){
+					position.y = 227 - y;
+				}
+
+				if(Math.abs(z)<60){
+					position.z = 40+z;
+				}
+				if(tmp.x!=position.x||tmp.y!=position.y||tmp.z!=position.z){
+					sendPosition();
+				}
+			}
+		}else {
+		
+		}
+ 	};
+	
+	function sendGCode(cmd){
+		if(connectId!=-1){
+			console.log(cmd);
+			chrome.serial.send(connectId, convertStringToArrayBuffer(cmd), function(result){});
+		}
+	}
+</script>
+</body>
+</html>
