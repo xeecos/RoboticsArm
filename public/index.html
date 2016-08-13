@@ -18,10 +18,10 @@
 				<option value="100">F100</option>
 				<option value="200">F200</option>
 				<option value="400">F400</option>
-				<option value="1500" selected="selected">F1500</option>
+				<option value="1500">F1500</option>
 				<option value="2800">F2800</option>
 				<option value="6000">F6000</option>
-				<option value="12000">F12000</option>
+				<option value="12000" selected="selected">F12000</option>
 				<option value="20000">F20000</option>
 			</select>&nbsp;&nbsp;
 			<button type="button" class="btn" style="width:40px;" onClick="refreshSerialPort();">
@@ -58,7 +58,7 @@
 </div>
 <script>
 	var connectId = -1;
-	var position = {x:0,y:227,z:0};
+	var position = {x:0,y:227,z:0,w:0};
 	var status = "idle";
 	function convertStringToArrayBuffer(str) {
 		var buf=new ArrayBuffer(str.length);
@@ -111,7 +111,7 @@
 		console.log(str);
 		if(str.indexOf("ok")>-1){
 			status = "idle";
-			$("#info").html("X: "+position.x+"mm  Y:"+position.y+"mm  Z:"+position.z+"mm  Status:"+status);
+			$("#info").html("X:  "+position.x+"mm   Y:"+position.y+"mm   Z:"+position.z+"mm   W:"+position.w+"    Status:"+status);
 			self.sendNext();
 		}
 	};
@@ -160,7 +160,7 @@
 	function sendPosition(){
 		sendGCode("G1 X"+position.x+" Y"+position.y+" Z"+position.z+" F"+$("#speed option:selected" ).val()+"\n");
 		status = "moving";
-		$("#info").html("X: "+position.x+"mm  Y:"+position.y+"mm  Z:"+position.z+"mm  Status:"+status);
+		$("#info").html("X: "+position.x+"mm   Y:"+position.y+"mm   Z:"+position.z+"mm   W:"+position.w+"   Status:"+status);
 	}
 	var ws = new WebSocket('ws://localhost:6437');
 	var lastTime = 0;
@@ -176,7 +176,7 @@
 				lastTime = new Date().getTime();
 				//var sendBuf = ("x="+x+"&y="+y+"&z="+z+"&w="+w+"\n");
 				//console.log(sendBuf);
-				var tmp = {x:position.x,y:position.y,z:position.z};
+				var tmp = {x:position.x,y:position.y,z:position.z,w:position.w};
 				if(Math.abs(x)<150){
 					position.x = x;
 				}
@@ -187,9 +187,14 @@
 				if(Math.abs(z)<60){
 					position.z = 40+z;
 				}
-				if(tmp.x!=position.x||tmp.y!=position.y||tmp.z!=position.z){
-					sendPosition();
+				if(Math.abs(position.w-w)>5){
+					sendGCode("M1 S0 P"+(180-Math.max(0,Math.min(170,w*2)))+"\n");
+				}else{
+					if(tmp.x!=position.x||tmp.y!=position.y||tmp.z!=position.z){
+						sendPosition();
+					}
 				}
+				position.w = w;
 			}
 		}else {
 		
