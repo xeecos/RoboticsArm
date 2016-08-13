@@ -171,7 +171,7 @@
 			var x = Math.floor(frame.hands[0].t[0]);
 			var y = Math.floor(frame.hands[0].t[2]);
 			var z = Math.floor(frame.hands[0].t[1]);
-			var w = Math.floor(frame.hands[0].sphereRadius);
+			var w = Math.floor((frame.hands[0].s-0.5)*180);
 			if(new Date().getTime()-lastTime>100){
 				lastTime = new Date().getTime();
 				//var sendBuf = ("x="+x+"&y="+y+"&z="+z+"&w="+w+"\n");
@@ -187,14 +187,13 @@
 				if(Math.abs(z)<60){
 					position.z = 40+z;
 				}
-				if(Math.abs(position.w-w)>5){
-					sendGCode("M1 S0 P"+(180-Math.max(0,Math.min(170,w*2)))+"\n");
-				}else{
-					if(tmp.x!=position.x||tmp.y!=position.y||tmp.z!=position.z){
-						sendPosition();
-					}
+				if(Math.abs(position.w-w)>3){
+					sendGCode("M1 S0 P"+(180-position.w)+"\n");
 				}
-				position.w = w;
+				if(tmp.x!=position.x||tmp.y!=position.y||tmp.z!=position.z){
+						sendPosition();
+				}
+				position.w = Math.max(0,Math.min(180,Math.floor(w*0.8+position.w*0.2)));
 			}
 		}else {
 		
@@ -203,7 +202,7 @@
 	
 	function sendGCode(cmd){
 		if(connectId!=-1){
-			console.log(cmd);
+			// console.log(cmd);
 			chrome.serial.send(connectId, convertStringToArrayBuffer(cmd), function(result){});
 		}
 	}
