@@ -11,8 +11,8 @@
 		<textarea id="gcode-console" style="resize:none;width:425px;height:140px;" bind-value-to="consoleGCode" spellcheck="false"></textarea>
 		<p id="info" style="font-size:12px;line-height:16px;">X: 0mm  Y:277mm  Z:0mm  Status:idle</p>
 		<p style="position:relative;top:-5px;left:0px;">
-			<button id="connectBt" class="btn btn-success" style="width:100px;" onClick="onConnect();">Connect</button>&nbsp;&nbsp;
-			<select id="serialport" style="width:182px;margin-top:10px;height:30px;"></select>&nbsp;&nbsp;
+			<button id="connectBt" class="btn btn-success" style="width:100px;" onClick="onConnect();">Connect</button>
+			<select id="serialport" style="width:182px;margin-top:10px;height:30px;"></select>
 			<select id="speed" style="width:70px;margin-top:10px;height:30px;">
 				<option value="50">F50</option>
 				<option value="100">F100</option>
@@ -23,13 +23,13 @@
 				<option value="6000">F6000</option>
 				<option value="12000" selected="selected">F12000</option>
 				<option value="20000">F20000</option>
-			</select>&nbsp;&nbsp;
+			</select>
 			<button type="button" class="btn" style="width:40px;" onClick="refreshSerialPort();">
 			<img src="assets/refresh.png" width="15px" height="15px"/>
 			</button>
 		</p>
 		<div style="position:relative;top:-10px;left:0px;">
-			<button type="button" class="btn btn-success"  style="position:absolute;top:75px;left:0px;width:100px;height:65px;" ng-click="printGCode()">
+			<button type="button" class="btn btn-success"  style="position:absolute;top:75px;left:0px;width:100px;height:65px;" onClick="printGCode()">
 			GCode
 			</button>
 			<button type="button" class="btn" style="position:absolute;top:0px;left:110px;width:100px;height:65px;" onClick="moveForward()">
@@ -69,6 +69,10 @@
 		return buf;
 	}
 	var _gcodes = [];
+	function printGCode(){
+		_gcodes = $("#gcode-console").val().split("\n");
+		sendNext();
+	}
 	function sendNext(){
 		if(_gcodes.length>0){
 			sendGCode( _gcodes.shift()+"\n");
@@ -108,7 +112,7 @@
 	refreshSerialPort();
 	function onReceiveCallback(res){
 		var str = String.fromCharCode.apply(null, new Uint8Array(res.data));
-		console.log(str);
+		//console.log(str);
 		if(str.indexOf("ok")>-1){
 			status = "idle";
 			$("#info").html("X:  "+position.x+"mm   Y:"+position.y+"mm   Z:"+position.z+"mm   W:"+position.w+"    Status:"+status);
@@ -202,7 +206,7 @@
 	
 	function sendGCode(cmd){
 		if(connectId!=-1){
-			// console.log(cmd);
+			//console.log(cmd);
 			chrome.serial.send(connectId, convertStringToArrayBuffer(cmd), function(result){});
 		}
 	}

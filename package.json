@@ -7,7 +7,7 @@
     "icon": "assets/icon.png",
     "frame": true,
     "transparent": false,
-    "width": 450,
+    "width": 440,
     "height": 390,
     "toolbar":false,
     "resizable": false
